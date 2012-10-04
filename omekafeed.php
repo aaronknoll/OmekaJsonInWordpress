@@ -23,6 +23,7 @@ add_action( 'add_meta_boxes', 'omekafeedpull_add_custom_box' );
 add_action( 'save_post', 'omekafeedpull_save_postdata' );
 //actually put the stuff on the page, our priority is high!
 add_filter( 'the_content', 'omekapull_content_filter', 5 );
+//add some widgets for each
 
 //FUNCTIONS, OBJECTS AND OTHER EPHEMERA
 function omekafeedpull_install() {
@@ -113,24 +114,17 @@ function omekapull_content_filter( $content ) {
 		$existingvalue = get_post_meta($post_id, 'omeka_id');
 		//echo $existingvalue; //debug
 		
-		$pulledpork	=	new JsonPuller;
+		$pulledpork	=	new XmlPuller;
 		$pulledpork->puller();
-		
-		$jj = 0;
-		//decode the JSON Feed of featured OMEKA items
-		//$json = file_get_contents("http://lw4.gc.cuny.edu/_dev_push/archive/items/show/id/1?output=omeka-xml");
-	 	//$xml = simplexml_load_file('http://lw4.gc.cuny.edu/_dev_push/archive/items/show/id/1?output=omeka-xml');
-	
-
-
-
-		$url = 'archive/items/show/id/1?output=omeka-xml';
-		$str = file_get_contents($url);
-		echo $str;
+		$pulledpork->parseXml();
+		//$pulledpork->displayallmeta();
+		$pulledpork->displayameta('Subject', 'Objects Beware');
+		$pulledpork->displayameta('Language', 'Idioma?');
+		$pulledpork->displayameta('fulltext', 'Objects Beware');
 		}
 }
 
-class JsonPuller {
+class XmlPuller {
 
 		public function __construct()
 			{
@@ -142,35 +136,170 @@ class JsonPuller {
 				//echo "instantiatedm/// $this->pid  $this->evue";//debug
 			}
 			
-		public function parseJson($url)
+		public function parseXml()
 			{
+				//at point where this function is called, the puller should exist.
+				//ideally to save on queries to the page, we want to call
+				//puller() at the beginning of the script, just after the header
+				//and rely on the cache from wordpress the rest of the way. 
+				
+				$this->xmlarray	=	wp_cache_get('pulledXml');
+				if(!$this->xmlarray)
+					{
+						//if you skip to this step directly, load the xml
+						//and cache it. 
+						//echo "there is nothing in the cache.";//debug
+						$this->xmlarray =	$this->puller();
+						//echo "now we have it?";//debug
+					}
+				else {
+					//this is where we start parseing it, right?
+					//echo "we have an array right here $this->xmlarray";//debug
+				}
+				
+				//at this point with certainty we have an $xmlarray. 
+				//**debug this is an early version. let's populate a series of
+				//variables with our dublin core fields.
+				
+				$dublincorearray	=	$this->xmlarray->elementSetContainer->elementSet->elementContainer;
+				$imagesarray		=	$this->xmlarray->fileContainer;
+				
+				//we're dealing with a pretty large xml file. so what we're doing is iterating
+				//though the array of dublin core values and assigning a variable name and value
+				//for each populated field.
+				//print_r($dublincorearray);//debug
+				//$numberofarrays	=	count($dublincorearray);//debug --do we have more than 1 array here?
+				//echo $numberofarrays;//debug
+				
+				$irelandarray = array();
+				$xx = 0; //iterator
+				foreach($dublincorearray->element as $dubliner)
+					{
+						$irelandarray[$xx]['name']	=	$dubliner->name;
+						$irelandarray[$xx]['value']	=	$dubliner->elementTextContainer->elementText->text;
+						//echo $irelandarray[$xx]['name'] ."=>>>>". $irelandarray[$xx]['value'];
+						//echo "<br />";
+					
+						//let's cache the value and make it available later.
+						//wp_cache_set($irelandarray['name'], $irelandarray['value']);
+					
+						//and if we're already in the object, simplest. lt's assign a this variable
+						$this->$irelandarray[$xx]['name'] = $irelandarray[$xx]['value'];
+						
+						$xx++;//iterator
+					}
+				//echo $this->Subject;//debug THIS MEANS ITS WORKING.
+				$this->ireland	=	$irelandarray;
+				
+				if($imagesarray->file)
+					{
+						echo "we're im jere a...<br />";	//debug
+						//because you could, but not normally, might have more than one. 
+						$imagesinarrayform = array();
+						$jj=0;
+						foreach($imagesarray->file as $jacksonpollack)
+							{
+								//echo "<font color='red'>". $this->urlsplitter($jacksonpollack->src) ."</font>";
+								$imagesinarrayform[$jj]	=	$jacksonpollack->src;
+								$jj++;
+							}
+						if($imagesinarrayform)
+							{ 	//echo $imagesinarrayform[0];
+								$this->images = $imagesinarrayform;
+							}
+					}
+				
+			
+				//and don't forget about fulltext.
+				$fulltext = $this->xmlarray->itemType->elementContainer->element->elementTextContainer->elementText->text;
+				
+				//echo "<font color='green'>".  ."</font>";//debug
+				$this->fulltext = $this->turnintohtml($fulltext);
+			}
 
+		private function turnintohtml($string)
+			{
+				//seperate because I suspect down the road we might
+				//have other operations to run here.
+				$replacer = nl2br($string);
+				return $replacer;
+			}
+			
+		private function urlsplitter($url)
+			{
+				//takes the url of the full size image and finds the right thumbnail
+				//to display instead. 
+				$replacer = str_replace('fullsize', 'fullsize', $url);
+				return $replacer;
+			}
+
+		public function displayameta($whichmeta, $titular)
+			{
+				//$whichmeta
+				//this will display a single piece of meta data which you call
+				//on a per 'name' basis
+				
+				//$titular
+				//we also take a custom title so that it doesn't have to
+				//be the official the dublin core name.
+				
+				//special cases of data that aren't made from the normal loop
+				//echo "<strong>";//debug
+				if($whichmeta == "image")
+					{
+						//but if and only if there's images
+						if($this->images)
+							{
+								//echo $this->images[0];
+								foreach ($this->images as $snowflake)
+									{
+										echo "<img src='$snowflake'>";
+									}
+							}
+
+					}
+				elseif($whichmeta == "fulltext")
+					{
+						$unititle	=	 "Fulltext";
+						$unipar		=	 $this->fulltext;
+						include("views/eachbox.php");
+					}
+				else 
+					{
+						$unititle	=	 $titular;
+						$unipar		=	 $this->$whichmeta;
+						include("views/eachbox.php");
+					
+					}
+				//echo "</strong>";//debug
+			}
+			
+		public function displayallmeta()
+			{
+				//this displays every piece of metadata in one long running 
+				// list. also only displays the official dublin core metadata
+				// field name. this most closely resembles what one would see
+				// on a default omeka page. 
+				
+				foreach($this->ireland as $cork)
+					{
+						echo $cork['name'];
+						echo $cork['value'];
+					}
+				//echo $this->images;//display image
 			}
 			
 		public function puller()
 			{ 
-				//$context  = stream_context_create(array('http' => array('header' => 'Accept: application/xml')));
-				//$this->url = site_url(''. $this->direc .'/admin/items/show/id/'.$this->evue.'?output=dcmes-xml');
+				$context  = stream_context_create(array('http' => array('header' => 'Accept: application/xml')));
+				$this->url = site_url(''. $this->direc .'/items/show/id/'.$this->evue.'?output=omeka-xml');
 				//echo "$this->url ";//debug
-				//fopen($this->url);
-				//$file = file_get_contents($this->url, true);
-				//var_dump($file);
-				//$this->parseJson($this->url);
-				//echo $url;
-//				ncoded 	= urlencode($this->url);
-				//echo $encoded;
-				//$xml = simplexml_load_file($this->url, 'SimpleXMLElement', LIBXML_NOCDATA);
+				$xml = simplexml_load_file($this->url);
+				//print_r($xml);//debug
 				
-
-				 //foreach (libxml_get_errors() as $error) 
-				 // {
-				 //   echo "\t", $error->message;
-				 // }   
-//
-				//$xml = file_get_contents($this->url, true, $context) or die("ds");
-				//print_r($xml);
-				//echo $xml;
+				//set the xml into the wp cache, to reduce the loading time.
+				//we're going to break this apart for efficacy.
+				wp_cache_set('pulledXml', $xml);
 			}
-	
 }
 ?>
