@@ -13,7 +13,6 @@ License: GPL
 include "create_admin_page.php"; //code to make the page in the admin panel where options are set
 
 //ACTIONS, HOOKS AND FILTERS. 
-
 /* Runs when plugin is activated */
 register_activation_hook(__FILE__,'omekafeedpull_install'); 
 /* Runs on plugin deactivation*/
@@ -59,18 +58,7 @@ function omekafeedpull_inner_custom_box( $post ) {
 	}
   // verify things. 
   wp_nonce_field( plugin_basename( __FILE__ ), 'omekafeedpull_noncename' );
-
-  //the form
-  echo '<label for="omekafeedpull_new_field">';
-       _e("Description for this field", 'omekafeedpull_textdomain' );
-  echo '</label> ';
-  echo '<input type="text" id="omekafeedpull_new_field" name="omekafeedpull_new_field" 
-  		value="'. $existingvalue[0] .'" size="25" />';
-  //add style later
-  echo '<p class="important">Please note! Adding a number here
-  		will cause the Json Feed of the appropriate Omeka archive
-  		page to be pulled here. Other plugin settings may be over-ridden
-  		here</p>';
+  include("views/configform.php");
 }
 
 /* When the post is saved, saves our custom data */
@@ -193,7 +181,7 @@ class XmlPuller {
 				
 				if($imagesarray->file)
 					{
-						echo "we're im jere a...<br />";	//debug
+						//echo "we're im jere a...<br />";	//debug
 						//because you could, but not normally, might have more than one. 
 						$imagesinarrayform = array();
 						$jj=0;
@@ -235,7 +223,6 @@ class XmlPuller {
 
 		public function displayameta($whichmeta, $titular)
 			{
-				//$whichmeta
 				//this will display a single piece of meta data which you call
 				//on a per 'name' basis
 				
@@ -266,10 +253,13 @@ class XmlPuller {
 					}
 				else 
 					{
-						$unititle	=	 $titular;
-						$unipar		=	 $this->$whichmeta;
-						include("views/eachbox.php");
-					
+						if(is_null($this->$whichmeta))
+							{}
+						else {
+							$unititle	=	 $titular;
+							$unipar		=	 $this->$whichmeta;
+							include("views/eachbox.php");
+						}
 					}
 				//echo "</strong>";//debug
 			}

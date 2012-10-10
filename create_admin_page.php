@@ -35,6 +35,32 @@ function omekafeedpull_htmlpage() {
 	        <td><input type="text" name="omekafeedpull_omekaroot" value="<?php echo get_option('omekafeedpull_omekaroot'); ?>" /></td>
 	        </tr>
 	    </table>
+	    <!--<p>Firstly note, <strong>if the field is blank it will not display</strong>.
+	    	but since this plugin assumes that your Omeka backend is primarily
+	    	inteneded for cataloging, I think it's possible and likely that you
+	    	have some fields which you want filled out for archival purposes,
+	    	but you may not want to display on the front end. By filling this out
+	    	you can use the "Display all Fields" option and have it automatically
+	    	only display the fields you want, regardless of whether or not
+	    	they are empty on your Omeka Backend.</p>
+	   	<table class="form-table">
+	    	<tr valign="top">
+	        <th scope="row">Would You like to suppress any Dublin Core Fields?</th>
+	        <td><input type="text" name="omekafeedpull_omekaroot" value="<?php echo get_option('omekafeedpull_omekaroot'); ?>" /></td>
+		        <td>
+		        	<fieldset>
+		        		<legend>
+		        			Creator
+		        		</legend>
+		        			<select>
+				 				<option name="creatoron" id="creatoron" value="mercedes">Yes</option>
+				  				<option value="audi">No</option>
+							</select>	
+		        	</fieldset>
+		        	
+				</td>
+	        </tr>
+	    </table>-->
 	    <p class="submit">
 	    	<input type="submit" class="button-primary" value="<?php _e('Save Changes') ?>" />
 	    </p>
