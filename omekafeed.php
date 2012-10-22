@@ -28,11 +28,21 @@ add_filter( 'the_content', 'omekapull_content_filter', 5 );
 function omekafeedpull_install() {
 /* Creates new database field */
 add_option('omekafeedpull_omekaroot', '/omeka', '', 'yes');
+$dcoreArray	=	array("Title", "Creator", "Subject", "Description", "Publisher", "Contributor", "Date", "Type", "Format", "Identifier", "Source", "Language", "Relation", "Coverage", "Rights");
+foreach($dcoreArray as $d)
+	{
+		add_option('omekafeedpull_'. $d .'toggle', 'on', '', 'yes');
+	}
 }
 
 function omekafeedpull_remove() {
 /* Deletes the database field */
 delete_option('omekafeedpull_omekaroot');
+$dcoreArray	=	array("Title", "Creator", "Subject", "Description", "Publisher", "Contributor", "Date", "Type", "Format", "Identifier", "Source", "Language", "Relation", "Coverage", "Rights");
+foreach($dcoreArray as $d)
+	{
+		delete_option('omekafeedpull_'. $d .'toggle');
+	}
 }
 
 // from here, we're going to add the custom fields to the "edit page" pages
