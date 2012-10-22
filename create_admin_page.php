@@ -77,23 +77,19 @@ class dCoreDropDown {
 		$current	=	get_site_option('omekafeedpull_'. $element .'toggle');
 			{
 				if($current)
-					{
-						return $current;
-					}
+					{return $current;}
 				else
-					{
-						return FALSE;
-					}
-			}
-			
+					{return FALSE;}
+			}	
 		}
+		
 	private function singleMenuIteration($element)
 		{
 			$onoroff	=	$this->whatisthere($element);
 			?>
 			<fieldset>
-				<legend><?php echo $element; ?></legend>
-				<select id="omekafeedpull_<?php echo $element; ?>toggle">
+				<label for="omekafeedpull_<?php echo $element; ?>toggle"><?php echo $element; ?></label>
+				<select id="omekafeedpull_<?php echo $element; ?>toggle" name="omekafeedpull_<?php echo $element; ?>toggle">
 					<option <?php if($onoroff == "on"){echo "SELECTED";}?> value="on">ON</option>
 					<option <?php if($onoroff == "off"){echo "SELECTED";}?> value="off">OFF</option>					
 				</select>
@@ -105,6 +101,11 @@ class dCoreDropDown {
 function omekafeedpull_mysettings() {
 	//register our settings
 	register_setting( 'omekafeedpull-group', 'omekafeedpull_omekaroot' );
+	$dcoreArray	=	array("Title", "Creator", "Subject", "Description", "Publisher", "Contributor", "Date", "Type", "Format", "Identifier", "Source", "Language", "Relation", "Coverage", "Rights");
+	foreach($dcoreArray as $d)
+		{
+		register_setting( 'omekafeedpull-group', 'omekafeedpull_'. $d .'toggle');
+		}
 }
 
 
@@ -125,37 +126,12 @@ function omekafeedpull_htmlpage() {
 	        <td><input type="text" name="omekafeedpull_omekaroot" value="<?php echo get_option('omekafeedpull_omekaroot'); ?>" /></td>
 	        </tr>
 	    </table>
+	   
+	<h4>Toggle Dublin Core fields on/off</h4>
 	    <?php
 	    $dd	=	new dCoreDropDown;
 		$dd->makeMenu("all");
-		//$dd->makeMenu("Subject");
 	    ?>
-	    <!--<p>Firstly note, <strong>if the field is blank it will not display</strong>.
-	    	but since this plugin assumes that your Omeka backend is primarily
-	    	inteneded for cataloging, I think it's possible and likely that you
-	    	have some fields which you want filled out for archival purposes,
-	    	but you may not want to display on the front end. By filling this out
-	    	you can use the "Display all Fields" option and have it automatically
-	    	only display the fields you want, regardless of whether or not
-	    	they are empty on your Omeka Backend.</p>
-	   	<table class="form-table">
-	    	<tr valign="top">
-	        <th scope="row">Would You like to suppress any Dublin Core Fields?</th>
-	        <td><input type="text" name="omekafeedpull_omekaroot" value="<?php echo get_option('omekafeedpull_omekaroot'); ?>" /></td>
-		        <td>
-		        	<fieldset>
-		        		<legend>
-		        			Creator
-		        		</legend>
-		        			<select>
-				 				<option name="creatoron" id="creatoron" value="mercedes">Yes</option>
-				  				<option value="audi">No</option>
-							</select>	
-		        	</fieldset>
-		        	
-				</td>
-	        </tr>
-	    </table>-->
 	    <p class="submit">
 	    	<input type="submit" class="button-primary" value="<?php _e('Save Changes') ?>" />
 	    </p>

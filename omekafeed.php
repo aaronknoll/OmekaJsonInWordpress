@@ -116,14 +116,19 @@ function omekapull_content_filter( $content ) {
 		$pulledpork->puller();
 		$pulledpork->parseXml();
 		//$pulledpork->displayallmeta();
-		$pulledpork->displayameta('Subject', 'Objects Beware');
-		$pulledpork->displayameta('Language', 'Idioma?');
+		$pulledpork->allDublinCore();
+		
+		//why are they seperate? so we can reshuffle them of course.
+		//$pulledpork->displayameta('Subject', 'Objects Beware');
+		//$pulledpork->displayameta('Language', 'Idioma?');
 		$pulledpork->displayameta('fulltext', 'Objects Beware');
 		}
 }
 
 class XmlPuller {
 
+		private $dcoreArray	=	array("Title", "Creator", "Subject", "Description", "Publisher", "Contributor", "Date", "Type", "Format", "Identifier", "Source", "Language", "Relation", "Coverage", "Rights");
+	
 		public function __construct()
 			{
 				//find the id of the post we're working with
@@ -134,6 +139,15 @@ class XmlPuller {
 				//echo "instantiatedm/// $this->pid  $this->evue";//debug
 			}
 			
+		public function allDublinCore()
+			{
+				foreach($this->dcoreArray as $d)
+					{
+						if($this->whatisthere($d) == "on")	
+							{$this->displayameta($d, $d);}
+					}
+			}
+		
 		public function parseXml()
 			{
 				//at point where this function is called, the puller should exist.
@@ -165,33 +179,15 @@ class XmlPuller {
 				//we're dealing with a pretty large xml file. so what we're doing is iterating
 				//though the array of dublin core values and assigning a variable name and value
 				//for each populated field.
-				//print_r($dublincorearray);//debug
-				//$numberofarrays	=	count($dublincorearray);//debug --do we have more than 1 array here?
-				//echo $numberofarrays;//debug
-				
 				$irelandarray = array();
-				$xx = 0; //iterator
 				foreach($dublincorearray->element as $dubliner)
 					{
-						$irelandarray[$xx]['name']	=	$dubliner->name;
-						$irelandarray[$xx]['value']	=	$dubliner->elementTextContainer->elementText->text;
-						//echo $irelandarray[$xx]['name'] ."=>>>>". $irelandarray[$xx]['value'];
-						//echo "<br />";
-					
-						//let's cache the value and make it available later.
-						//wp_cache_set($irelandarray['name'], $irelandarray['value']);
-					
-						//and if we're already in the object, simplest. lt's assign a this variable
-						$this->$irelandarray[$xx]['name'] = $irelandarray[$xx]['value'];
-						
-						$xx++;//iterator
+						$irelandarray[str_replace(' ', '', $dubliner->name)] = $dubliner->elementTextContainer->elementText->text;
 					}
-				//echo $this->Subject;//debug THIS MEANS ITS WORKING.
 				$this->ireland	=	$irelandarray;
 				
 				if($imagesarray->file)
 					{
-						//echo "we're im jere a...<br />";	//debug
 						//because you could, but not normally, might have more than one. 
 						$imagesinarrayform = array();
 						$jj=0;
@@ -210,14 +206,12 @@ class XmlPuller {
 			
 				//and don't forget about fulltext.
 				$fulltext = $this->xmlarray->itemType->elementContainer->element->elementTextContainer->elementText->text;
-				
-				//echo "<font color='green'>".  ."</font>";//debug
 				$this->fulltext = $this->turnintohtml($fulltext);
 			}
 
 		private function turnintohtml($string)
 			{
-				//seperate because I suspect down the road we might
+				//separate because I suspect down the road we might
 				//have other operations to run here.
 				$replacer = nl2br($string);
 				return $replacer;
@@ -241,7 +235,6 @@ class XmlPuller {
 				//be the official the dublin core name.
 				
 				//special cases of data that aren't made from the normal loop
-				//echo "<strong>";//debug
 				if($whichmeta == "image")
 					{
 						//but if and only if there's images
@@ -253,7 +246,6 @@ class XmlPuller {
 										echo "<img src='$snowflake'>";
 									}
 							}
-
 					}
 				elseif($whichmeta == "fulltext")
 					{
@@ -263,15 +255,29 @@ class XmlPuller {
 					}
 				else 
 					{
-						if(is_null($this->$whichmeta))
-							{}
-						else {
-							$unititle	=	 $titular;
-							$unipar		=	 $this->$whichmeta;
-							include("views/eachbox.php");
-						}
+						if(is_null($whichmeta))
+							{	}
+						else 
+							{
+								if($this->whatisthere($whichmeta) == "on")
+								{
+								$unipar		=	 $this->ireland[str_replace(' ', '', $whichmeta)];
+								$unititle	=	 $titular;
+								include("views/eachbox.php");
+								}
+							}
 					}
-				//echo "</strong>";//debug
+			}
+		
+		private function whatisthere($element)
+			{
+			$current	=	get_site_option('omekafeedpull_'. $element .'toggle');
+				{
+					if($current)
+						{return $current;}
+					else
+						{return FALSE;}
+				}	
 			}
 			
 		public function displayallmeta()
@@ -283,10 +289,14 @@ class XmlPuller {
 				
 				foreach($this->ireland as $cork)
 					{
-						echo $cork['name'];
-						echo $cork['value'];
+						if($this->whatisthere($cork[name]) == "on")
+							{
+							echo $cork['name'];
+							echo $cork['value'];
+							}
+						else {
+						}
 					}
-				//echo $this->images;//display image
 			}
 			
 		public function puller()

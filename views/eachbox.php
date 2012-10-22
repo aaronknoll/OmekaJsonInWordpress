@@ -1,2 +1,2 @@
-<h6><?php echo $unititle; ?></h6>
+<h2><?php echo $unititle; ?></h2>
 <p><?php echo $unipar; ?></p>
