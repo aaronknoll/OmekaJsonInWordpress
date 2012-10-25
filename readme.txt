@@ -8,6 +8,9 @@ Stable tag: 0.9
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
+
+
+
 Allows you to include information from an Omeka installation on the same
 site as a subdomain on pages in Wordpress in your Wordpress theme.
 
