@@ -111,17 +111,19 @@ function omekapull_content_filter( $content ) {
 		$post_id	=	get_the_ID(); 
 		$existingvalue = get_post_meta($post_id, 'omeka_id');
 		//echo $existingvalue; //debug
-		
-		$pulledpork	=	new XmlPuller;
-		$pulledpork->puller();
-		$pulledpork->parseXml();
-		//$pulledpork->displayallmeta();
-		$pulledpork->allDublinCore();
-		
-		//why are they seperate? so we can reshuffle them of course.
-		//$pulledpork->displayameta('Subject', 'Objects Beware');
-		//$pulledpork->displayameta('Language', 'Idioma?');
-		$pulledpork->displayameta('fulltext', 'Objects Beware');
+		if(is_numeric($existingvalue))
+			{
+			$pulledpork	=	new XmlPuller;
+			$pulledpork->puller();
+			$pulledpork->parseXml();
+			//$pulledpork->displayallmeta();
+			$pulledpork->allDublinCore();
+			
+			//why are they seperate? so we can reshuffle them of course.
+			//$pulledpork->displayameta('Subject', 'Objects Beware');
+			//$pulledpork->displayameta('Language', 'Idioma?');
+			$pulledpork->displayameta('fulltext', 'Objects Beware');
+			}
 		}
 }
 
