@@ -110,8 +110,9 @@ function omekapull_content_filter( $content ) {
 		{
 		$post_id	=	get_the_ID(); 
 		$existingvalue = get_post_meta($post_id, 'omeka_id');
-		//echo $existingvalue; //debug
-		if(is_numeric($existingvalue))
+		//echo $existingvalue[0]; //debug
+		echo $content;
+		if(is_numeric($existingvalue[0]))
 			{
 			$pulledpork	=	new XmlPuller;
 			$pulledpork->puller();
