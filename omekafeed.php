@@ -115,7 +115,6 @@ function omekapull_content_filter( $content ) {
 		if(is_numeric($existingvalue[0]))
 			{
 			$pulledpork	=	new XmlPuller;
-			$pulledpork->puller();
 			$pulledpork->parseXml();
 			//$pulledpork->displayallmeta();
 			$pulledpork->allDublinCore();
@@ -124,6 +123,7 @@ function omekapull_content_filter( $content ) {
 			//$pulledpork->displayameta('Subject', 'Objects Beware');
 			//$pulledpork->displayameta('Language', 'Idioma?');
 			$pulledpork->displayameta('fulltext', 'Objects Beware');
+			$pulledpork->displayfiles('files');
 			}
 		}
 }
@@ -131,7 +131,7 @@ function omekapull_content_filter( $content ) {
 class XmlPuller {
 
 		private $dcoreArray	=	array("Title", "Creator", "Subject", "Description", "Publisher", "Contributor", "Date", "Type", "Format", "Identifier", "Source", "Language", "Relation", "Coverage", "Rights");
-	
+
 		public function __construct()
 			{
 				//find the id of the post we're working with
@@ -151,66 +151,16 @@ class XmlPuller {
 					}
 			}
 		
+		
 		public function parseXml()
 			{
-				//at point where this function is called, the puller should exist.
-				//ideally to save on queries to the page, we want to call
-				//puller() at the beginning of the script, just after the header
-				//and rely on the cache from wordpress the rest of the way. 
-				
-				$this->xmlarray	=	wp_cache_get('pulledXml');
-				if(!$this->xmlarray)
-					{
-						//if you skip to this step directly, load the xml
-						//and cache it. 
-						//echo "there is nothing in the cache.";//debug
-						$this->xmlarray =	$this->puller();
-						//echo "now we have it?";//debug
-					}
-				else {
-					//this is where we start parseing it, right?
-					//echo "we have an array right here $this->xmlarray";//debug
-				}
-				
-				//at this point with certainty we have an $xmlarray. 
-				//**debug this is an early version. let's populate a series of
-				//variables with our dublin core fields.
-				
-				$dublincorearray	=	$this->xmlarray->elementSetContainer->elementSet->elementContainer;
-				$imagesarray		=	$this->xmlarray->fileContainer;
-				
-				//we're dealing with a pretty large xml file. so what we're doing is iterating
-				//though the array of dublin core values and assigning a variable name and value
-				//for each populated field.
-				$irelandarray = array();
-				foreach($dublincorearray->element as $dubliner)
-					{
-						$irelandarray[str_replace(' ', '', $dubliner->name)] = $dubliner->elementTextContainer->elementText->text;
-					}
-				$this->ireland	=	$irelandarray;
-				
-				if($imagesarray->file)
-					{
-						//because you could, but not normally, might have more than one. 
-						$imagesinarrayform = array();
-						$jj=0;
-						foreach($imagesarray->file as $jacksonpollack)
-							{
-								//echo "<font color='red'>". $this->urlsplitter($jacksonpollack->src) ."</font>";
-								$imagesinarrayform[$jj]	=	$jacksonpollack->src;
-								$jj++;
-							}
-						if($imagesinarrayform)
-							{ 	//echo $imagesinarrayform[0];
-								$this->images = $imagesinarrayform;
-							}
-					}
-				
-			
-				//and don't forget about fulltext.
-				$fulltext = $this->xmlarray->itemType->elementContainer->element->elementTextContainer->elementText->text;
+				$this->xmlset	=	$this->puller();
+				$fulltext = $this->xmlset->fulltext;
 				$this->fulltext = $this->turnintohtml($fulltext);
+				//cache the breadcrumb
+				wp_cache_set('xml-breadcrumb', $this->xmlset->breadcrumb);
 			}
+			
 
 		private function turnintohtml($string)
 			{
@@ -228,6 +178,31 @@ class XmlPuller {
 				return $replacer;
 			}
 
+		public function displayfiles($filesorlinks)
+			{
+				$alttag	= wp_cache_get('xml-title');
+				foreach($this->xmlset->files->attachment as $attachment)
+					{
+					$mime			= 	$attachment->mime;
+					$highreslink	= 	$attachment->download;
+					$thumbnail 		=	$attachment->fullsize;
+					//not used
+					$literalthumbnail = $attachment->thumbnail;
+						if(strstr($attachment->mime, 'image'))
+							{//case there's an image...
+							if($filesorlinks == "files")
+								{include('views/imagebox.php');}
+							else 
+								{include('views/textimages.php');	}
+							}
+						else 
+							{
+							include('views/downloaddocument.php');
+							}
+					}
+				
+			}
+
 		public function displayameta($whichmeta, $titular)
 			{
 				//this will display a single piece of meta data which you call
@@ -236,7 +211,6 @@ class XmlPuller {
 				//$titular
 				//we also take a custom title so that it doesn't have to
 				//be the official the dublin core name.
-				
 				//special cases of data that aren't made from the normal loop
 				if($whichmeta == "image")
 					{
@@ -264,13 +238,92 @@ class XmlPuller {
 							{
 								if($this->whatisthere($whichmeta) == "on")
 								{
-								$unipar		=	 $this->ireland[str_replace(' ', '', $whichmeta)];
+								$nameofvar	= str_replace(' ', '', $whichmeta);
+								$unipar		=	$this->metaswitcher($whichmeta);
 								$unititle	=	 $titular;
-								include("views/eachbox.php");
+								if($unipar)
+									{
+										include("views/eachbox.php");
+									}
 								}
 							}
 					}
 			}
+
+	public function getbreadcrumb()
+		{
+			$yourbcumb	=	wp_cache_get('xml-breadcrumb');
+			return $yourbcumb;
+		}
+
+	private function metaswitcher($whichmeta)
+		{
+			switch($whichmeta)
+				{
+				case "Title":
+					$return = $this->xmlset->title;
+					wp_cache_set('xml-title', $return);
+					break;
+				case "Link":
+					$return = $this->xmlset->link;
+					break;
+				case "Description":
+					$return = $this->xmlset->description;
+					break;
+				case "Contributor":
+					$return = $this->xmlset->contributor;
+					break;
+				case "Coverage":
+					$return = $this->xmlset->coverage;
+					break;
+				case "Creator":
+					$return = $this->xmlset->creator;
+					break;
+				case "Date":
+					$return = $this->xmlset->ofdate;
+					break;
+				case "Format":
+					$return = $this->xmlset->format;
+					break;
+				case "Identifier":
+					$return = $this->xmlset->identifier;
+					break;
+				case "Language":
+					$return = $this->xmlset->language;
+					break;
+				case "Publisher":
+					$return = $this->xmlset->publisher;
+					break;
+				case "Relation":
+					$return = $this->xmlset->relation;
+					break;
+				case "Rights":
+					$return = $this->xmlset->rights;
+					break;
+				case "Source":
+					$return = $this->xmlset->source;
+					break;
+				case "Subject":
+					$return = $this->xmlset->subject;
+					break;
+				case "Type":
+					$return = $this->xmlset->type;
+					break;
+				case "Breadcrumb":
+					$return = $this->xmlset->breadcrumb;
+					break;
+				case "Fulltext":
+					$return = $this->xmlset->fulltext;
+					break;
+				case "Files":
+					$return = $this->xmlset->files;
+					break;
+				}
+			//since the xml has whitespace in NULL fields,
+			//lets trim so we can determine which fields
+			//are truly NULL.
+			return trim($return);	
+		}
 		
 		private function whatisthere($element)
 			{
@@ -289,8 +342,8 @@ class XmlPuller {
 				// list. also only displays the official dublin core metadata
 				// field name. this most closely resembles what one would see
 				// on a default omeka page. 
-				
-				foreach($this->ireland as $cork)
+				$xmlset	=	$this->puller();
+				foreach($xmlset as $cork)
 					{
 						if($this->whatisthere($cork[name]) == "on")
 							{
@@ -305,14 +358,12 @@ class XmlPuller {
 		public function puller()
 			{ 
 				$context  = stream_context_create(array('http' => array('header' => 'Accept: application/xml')));
-				$this->url = site_url(''. $this->direc .'/items/show/id/'.$this->evue.'?output=omeka-xml');
+				$this->url = site_url(''. $this->direc .'/items/show/id/'.$this->evue.'?output=axml');
 				//echo "$this->url ";//debug
-				$xml = simplexml_load_file($this->url);
+				$xml = simplexml_load_file($this->url, NULL, LIBXML_NOCDATA);
 				//print_r($xml);//debug
+				return $xml;
 				
-				//set the xml into the wp cache, to reduce the loading time.
-				//we're going to break this apart for efficacy.
-				wp_cache_set('pulledXml', $xml);
 			}
 }
 ?>
